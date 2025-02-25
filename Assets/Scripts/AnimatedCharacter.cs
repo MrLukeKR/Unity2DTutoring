@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Audio;
 
 public class CharacterAnimator : MonoBehaviour
 {
@@ -17,11 +18,23 @@ public class CharacterAnimator : MonoBehaviour
         public float frameRate = 0.1f;
     }
 
+    [System.Serializable]
+    public class AudioData
+    {
+        public CharacterState state;
+        public List<AudioClip> audio;
+        public bool isLoop;
+    }
+
     public List<AnimationData> animations;
+    public List<AudioData> sfx;
     public float moveSpeed = 2f;
     public float health = 100f;
 
     private Dictionary<CharacterState, Sprite[]> animationFrames;
+    private Dictionary<CharacterState, AudioClip[]> sfxClips;
+    private Dictionary<CharacterState, bool> sfxLoopable;
+
     private SpriteRenderer spriteRenderer;
     private int currentFrame;
     private float timer;
@@ -34,12 +47,16 @@ public class CharacterAnimator : MonoBehaviour
 
     public Image healthBarImage;
 
+    private AudioSource audioSource;
+
     private void Start()
     {
         spriteRenderer = GetComponent<SpriteRenderer>();
         rb = GetComponent<Rigidbody2D>();
+        audioSource = GetComponent<AudioSource>();
 
         LoadAnimations();
+        LoadSFX();
         StartCoroutine(Animate());
     }
 
@@ -50,6 +67,18 @@ public class CharacterAnimator : MonoBehaviour
         foreach (var anim in animations)
         {
             animationFrames[anim.state] = LoadSpriteStrip(anim.spriteStrip, anim.frameCount);
+        }
+    }
+
+    private void LoadSFX()
+    {
+        sfxClips = new Dictionary<CharacterState, AudioClip[]>();
+        sfxLoopable = new Dictionary<CharacterState, bool>();
+
+        foreach (var clip in sfx)
+        {
+            sfxClips[clip.state] = clip.audio.ToArray();
+            sfxLoopable[clip.state] = clip.isLoop;
         }
     }
 
@@ -191,13 +220,61 @@ public class CharacterAnimator : MonoBehaviour
 
         if (Input.GetKeyDown(KeyCode.K))
         {
-                SetState(CharacterState.Dead);
+            health = 0;
+            SetState(CharacterState.Hurt);
         }
         
         if (Input.GetKeyDown(KeyCode.H))  // Example input to trigger Hurt state
         {
             health -= 10;
             SetState(CharacterState.Hurt);
+        }
+
+    }
+
+    private void PlaySFX()
+    {
+        if (sfxClips.ContainsKey(currentState))
+        {
+            var clips = sfxClips[currentState];  // Get the array of sound clips for the current state
+            var loopable = sfxLoopable[currentState];
+            var clipsCount = clips.Length;
+
+            if (clipsCount > 0)
+            {
+                // Pick a random clip index
+                int randomIndex = Random.Range(0, clipsCount);
+                AudioClip selectedClip = clips[randomIndex];
+                // Play the selected clip using the AudioSource
+
+                if (audioSource != null)
+                {
+                    if (loopable)
+                    {
+                        if (audioSource.isPlaying && audioSource.loop)
+                        {
+                            audioSource.Stop();  // Stop any currently playing sound
+                        }
+
+                        audioSource.clip = selectedClip;
+                        audioSource.loop = true;  // Set looping
+                        audioSource.Play();  // Play the loopable sound
+                    }
+                    else
+                    {
+                        audioSource.loop = false;
+                        audioSource.PlayOneShot(selectedClip);
+                    }
+                }
+            }
+        } 
+        else
+        {
+            if (audioSource.isPlaying && audioSource.loop)  // Set looping)
+            {
+                audioSource.loop = false;
+                audioSource.Stop();  // Stop any currently playing sound
+            }
         }
 
     }
@@ -209,6 +286,7 @@ public class CharacterAnimator : MonoBehaviour
             currentState = newState;
             currentFrame = 0;
             hurtAnimationPlayed = false;
+            PlaySFX();
         }
     }
 
