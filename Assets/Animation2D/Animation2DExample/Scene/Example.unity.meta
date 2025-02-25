@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: e9c1a5ed41ece9f42bdd1ffe6fa35e68
+timeCreated: 1500264412
+licenseType: Store
+DefaultImporter:
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 95812
+  packageName: Animation2D - Sprite Sheet Animation
+  packageVersion: 1.0.1
+  assetPath: Assets/Animation2D/Animation2DExample/Scene/Example.unity
+  uploadId: 197720
